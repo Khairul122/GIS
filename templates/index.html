@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Routing Lhokseumawe - Smart Route</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Roboto", Arial, sans-serif;
+        color: #333;
+      }
+      #map {
+        height: 100vh;
+        width: 100%;
+      }
+      .header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #4285f4;
+        color: white;
+        padding: 15px 20px;
+        z-index: 1000;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 500;
+      }
+      .header-icon {
+        margin-right: 10px;
+        font-size: 22px;
+      }
+      .search-panel {
+        position: absolute;
+        top: 80px;
+        left: 10px;
+        z-index: 1000;
+        background: white;
+        padding: 16px;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        width: 350px;
+        transition: all 0.3s ease;
+      }
+      .search-panel.expanded {
+        height: auto;
+      }
+      .search-panel.collapsed {
+        height: 60px;
+        overflow: hidden;
+      }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        align-items: center;
+      }
+      .panel-title {
+        font-size: 16px;
+        font-weight: 500;
+        color: #4285f4;
+      }
+      .panel-toggle {
+        background: none;
+        border: none;
+        color: #666;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 0;
+      }
+      .input-wrapper {
+        position: relative;
+        margin-bottom: 15px;
+      }
+      .input-icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #4285f4;
+      }
+      .location-input {
+        width: 100%;
+        padding: 12px 12px 12px 40px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.3s ease;
+      }
+      .location-input:focus {
+        outline: none;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        border-color: #4285f4;
+      }
+      .action-btn {
+        background: #4285f4;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+        font-weight: 500;
+        font-size: 14px;
+        margin-top: 10px;
+        transition: background 0.3s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .action-btn:hover {
+        background: #3367d6;
+      }
+      .action-btn i {
+        margin-right: 8px;
+      }
+      .status-card {
+        margin-top: 16px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+      .route-info {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        position: absolute;
+        bottom: 20px;
+        left: 10px;
+        z-index: 1000;
+        width: 350px;
+        padding: 16px;
+        display: none;
+      }
+      .route-info-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+      }
+      .route-title {
+        font-weight: 500;
+        font-size: 16px;
+      }
+      .route-details {
+        display: flex;
+        align-items: center;
+      }
+      .detail-item {
+        margin-right: 15px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .detail-value {
+        font-weight: 500;
+        font-size: 18px;
+        margin-bottom: 5px;
+      }
+      .detail-label {
+        font-size: 12px;
+        color: #666;
+      }
+      .maptype-control {
+        position: absolute;
+        bottom: 20px;
+        right: 10px;
+        z-index: 1000;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      .maptype-btn {
+        padding: 10px 15px;
+        border: none;
+        background: white;
+        cursor: pointer;
+        font-size: 13px;
+        color: #666;
+        transition: background 0.2s ease;
+      }
+      .maptype-btn:hover {
+        background: #f1f3f4;
+      }
+      .maptype-btn.active {
+        color: #4285f4;
+        font-weight: 500;
+        background: #e6f1ff;
+      }
+      .control-btn {
+        width: 40px;
+        height: 40px;
+        background: white;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        color: #666;
+        margin-bottom: 10px;
+        transition: all 0.2s ease;
+      }
+      .control-btn:hover {
+        background: #f1f3f4;
+      }
+      .map-controls {
+        position: absolute;
+        right: 10px;
+        top: 80px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+      }
+      .coordinates-display {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.8);
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        color: #555;
+        z-index: 1000;
+      }
+      .loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        flex-direction: column;
+      }
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #4285f4;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .marker-popup {
+        text-align: center;
+      }
+      .marker-popup-btn {
+        background: #4285f4;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .route-panel {
+        margin-top: 20px;
+        display: none;
+      }
+      .destination-title {
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: #333;
+      }
+      @media (max-width: 768px) {
+        .search-panel,
+        .route-info {
+          width: calc(100% - 20px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <i class="fas fa-route header-icon"></i>
+      <h1>Lhokseumawe Smart Route</h1>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div>Memuat peta dan data rute...</div>
+    </div>
+
+    <div class="search-panel" id="searchPanel">
+      <div class="panel-header">
+        <div class="panel-title">Pencarian Lokasi</div>
+        <button class="panel-toggle" id="panelToggle">
+          <i class="fas fa-chevron-up"></i>
+        </button>
+      </div>
+
+      <div class="input-wrapper">
+        <i class="fas fa-search input-icon"></i>
+        <input
+          type="text"
+          id="locationSearch"
+          placeholder="Masukkan nama lokasi"
+          class="location-input"
+        />
+      </div>
+
+      <button class="action-btn" id="searchLocationBtn">
+        <i class="fas fa-search"></i>Cari Lokasi
+      </button>
+
+      <div id="routePanel" class="route-panel">
+        <div class="destination-title">Temukan Rute Ke Lokasi Ini:</div>
+        <div class="input-wrapper">
+          <i class="fas fa-map-marker-alt input-icon" style="color: red"></i>
+          <input
+            type="text"
+            id="destinationInput"
+            placeholder="Masukkan lokasi tujuan"
+            class="location-input"
+          />
+        </div>
+        <button class="action-btn" id="searchDestinationBtn">
+          <i class="fas fa-search"></i>Cari Lokasi Tujuan
+        </button>
+        <button class="action-btn" id="findRouteBtn">
+          <i class="fas fa-directions"></i>Cari Rute
+        </button>
+      </div>
+
+      <div class="status-card" id="status">
+        Sistem siap. Masukkan lokasi untuk memulai.
+      </div>
+    </div>
+
+    <div class="route-info" id="routeInfo">
+      <div class="route-info-header">
+        <div class="route-title">Informasi Rute</div>
+        <div class="route-algorithm" id="routeAlgorithm"></div>
+      </div>
+
+      <div class="route-details">
+        <div class="detail-item">
+          <div class="detail-value" id="routeDistance">0.0</div>
+          <div class="detail-label">Jarak (km)</div>
+        </div>
+
+        <div class="detail-item">
+          <div class="detail-value" id="routeTime">0</div>
+          <div class="detail-label">Waktu (menit)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="map-controls">
+      <div class="control-btn" id="locateMe" title="Temukan lokasi saya">
+        <i class="fas fa-location-arrow"></i>
+      </div>
+
+      <div class="control-btn" id="resetView" title="Reset pandangan peta">
+        <i class="fas fa-sync-alt"></i>
+      </div>
+    </div>
+
+    <div class="maptype-control">
+      <button class="maptype-btn active" id="mapOSM">Standar</button>
+      <button class="maptype-btn" id="mapSatelite">Satelit</button>
+    </div>
+
+    <div class="coordinates-display" id="coordinates">
+      Masukkan lokasi untuk melihat koordinat
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+      const DEFAULT_CENTER = [5.1801, 97.151];
+      const DEFAULT_ZOOM = 14;
+
+      const map = L.map("map", {
+        zoomControl: false,
+      }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+
+      const osmLayer = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        }
+      ).addTo(map);
+
+      const satelliteLayer = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          attribution:
+            "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+        }
+      );
+
+      let routeLine;
+      let locationMarker, destinationMarker, userLocationMarker;
+      let isPanelCollapsed = false;
+      let foundLocation = null;
+      let destinationLocation = null;
+      let userLocation = null;
+
+      const searchPanel = document.getElementById("searchPanel");
+      const panelToggle = document.getElementById("panelToggle");
+      const routeInfo = document.getElementById("routeInfo");
+      const loadingScreen = document.getElementById("loading");
+      const routePanel = document.getElementById("routePanel");
+
+      const locationIcon = L.divIcon({
+        html: '<i class="fas fa-map-marker-alt" style="color: red; font-size: 28px;"></i>',
+        className: "custom-div-icon",
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+      });
+
+      const destinationIcon = L.divIcon({
+        html: '<i class="fas fa-flag-checkered" style="color: green; font-size: 24px;"></i>',
+        className: "custom-div-icon",
+        iconSize: [24, 24],
+        iconAnchor: [12, 24],
+      });
+
+      const userLocationIcon = L.divIcon({
+        html: '<i class="fas fa-circle" style="color: #4285F4; font-size: 14px;"></i>',
+        className: "custom-div-icon",
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
+
+      panelToggle.addEventListener("click", function () {
+        isPanelCollapsed = !isPanelCollapsed;
+        if (isPanelCollapsed) {
+          searchPanel.classList.remove("expanded");
+          searchPanel.classList.add("collapsed");
+          panelToggle.innerHTML = '<i class="fas fa-chevron-down"></i>';
+        } else {
+          searchPanel.classList.remove("collapsed");
+          searchPanel.classList.add("expanded");
+          panelToggle.innerHTML = '<i class="fas fa-chevron-up"></i>';
+        }
+      });
+
+      document.getElementById("mapOSM").addEventListener("click", function () {
+        map.removeLayer(satelliteLayer);
+        map.addLayer(osmLayer);
+        this.classList.add("active");
+        document.getElementById("mapSatelite").classList.remove("active");
+      });
+
+      document
+        .getElementById("mapSatelite")
+        .addEventListener("click", function () {
+          map.removeLayer(osmLayer);
+          map.addLayer(satelliteLayer);
+          this.classList.add("active");
+          document.getElementById("mapOSM").classList.remove("active");
+        });
+
+      document
+        .getElementById("resetView")
+        .addEventListener("click", function () {
+          map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+        });
+
+      document
+        .getElementById("locateMe")
+        .addEventListener("click", function () {
+          if ("geolocation" in navigator) {
+            updateStatus("Mencari lokasi anda...", "blue");
+
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const { latitude, longitude } = position.coords;
+                userLocation = [latitude, longitude];
+
+                if (userLocationMarker) {
+                  map.removeLayer(userLocationMarker);
+                }
+
+                userLocationMarker = L.marker(userLocation, {
+                  icon: userLocationIcon,
+                }).addTo(map);
+                userLocationMarker
+                  .bindPopup(
+                    `<div class="marker-popup">Lokasi Anda<br>${latitude.toFixed(
+                      6
+                    )}, ${longitude.toFixed(6)}</div>`
+                  )
+                  .openPopup();
+
+                map.setView(userLocation, 16);
+                updateStatus("Lokasi anda ditemukan!", "green");
+                document.getElementById(
+                  "coordinates"
+                ).innerText = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+              },
+              (error) => {
+                updateStatus(
+                  "Gagal mendapatkan lokasi anda: " + error.message,
+                  "red"
+                );
+              }
+            );
+          } else {
+            updateStatus("Geolocation tidak didukung di browser anda", "red");
+          }
+        });
+
+      document
+        .getElementById("searchLocationBtn")
+        .addEventListener("click", searchLocation);
+      document
+        .getElementById("searchDestinationBtn")
+        .addEventListener("click", searchDestination);
+      document
+        .getElementById("findRouteBtn")
+        .addEventListener("click", findRoute);
+
+      function updateStatus(text, color = "black") {
+        document.getElementById("status").innerHTML = text;
+        document.getElementById("status").style.color = color;
+      }
+
+      async function searchLocation() {
+        const locationQuery = document.getElementById("locationSearch").value;
+
+        if (!locationQuery) {
+          updateStatus("Mohon masukkan nama lokasi", "red");
+          return;
+        }
+
+        loadingScreen.style.display = "flex";
+        updateStatus("Mencari lokasi...", "blue");
+
+        try {
+          const location = await geocodeAddress(locationQuery);
+
+          if (locationMarker) {
+            map.removeLayer(locationMarker);
+          }
+
+          if (routeLine) {
+            map.removeLayer(routeLine);
+            routeInfo.style.display = "none";
+          }
+
+          foundLocation = location;
+
+          locationMarker = L.marker(location, { icon: locationIcon })
+            .addTo(map)
+            .bindPopup(
+              `<div class="marker-popup">${locationQuery}<br>${location[0].toFixed(
+                6
+              )}, ${location[1].toFixed(6)}</div>`
+            )
+            .openPopup();
+
+          map.setView(location, 16);
+
+          document.getElementById(
+            "coordinates"
+          ).innerText = `${location[0].toFixed(6)}, ${location[1].toFixed(6)}`;
+          updateStatus(`Lokasi "${locationQuery}" ditemukan!`, "green");
+
+          routePanel.style.display = "block";
+        } catch (error) {
+          updateStatus(error.message, "red");
+        } finally {
+          loadingScreen.style.display = "none";
+        }
+      }
+
+      async function searchDestination() {
+        const destinationQuery =
+          document.getElementById("destinationInput").value;
+
+        if (!destinationQuery) {
+          updateStatus("Mohon masukkan nama lokasi tujuan", "red");
+          return;
+        }
+
+        loadingScreen.style.display = "flex";
+        updateStatus("Mencari lokasi tujuan...", "blue");
+
+        try {
+          const location = await geocodeAddress(destinationQuery);
+
+          if (destinationMarker) {
+            map.removeLayer(destinationMarker);
+          }
+
+          if (routeLine) {
+            map.removeLayer(routeLine);
+            routeInfo.style.display = "none";
+          }
+
+          destinationLocation = location;
+
+          destinationMarker = L.marker(location, { icon: destinationIcon })
+            .addTo(map)
+            .bindPopup(
+              `<div class="marker-popup">${destinationQuery}<br>${location[0].toFixed(
+                6
+              )}, ${location[1].toFixed(6)}</div>`
+            )
+            .openPopup();
+
+          map.setView(location, 16);
+
+          document.getElementById(
+            "coordinates"
+          ).innerText = `${location[0].toFixed(6)}, ${location[1].toFixed(6)}`;
+          updateStatus(
+            `Lokasi tujuan "${destinationQuery}" ditemukan!`,
+            "green"
+          );
+        } catch (error) {
+          updateStatus(error.message, "red");
+        } finally {
+          loadingScreen.style.display = "none";
+        }
+      }
+
+      async function findRoute() {
+        if (!foundLocation) {
+          updateStatus(
+            "Mohon masukkan dan cari lokasi awal terlebih dahulu",
+            "red"
+          );
+          return;
+        }
+
+        if (!destinationLocation) {
+          updateStatus(
+            "Mohon masukkan dan cari lokasi tujuan terlebih dahulu",
+            "red"
+          );
+          return;
+        }
+
+        const startLocation = userLocation || foundLocation;
+        const targetLocation = destinationLocation;
+
+        loadingScreen.style.display = "flex";
+        updateStatus("Mencari rute optimal...", "blue");
+
+        try {
+          const response = await fetch("/find_route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              start: startLocation.join(","),
+              end: targetLocation.join(","),
+            }),
+          });
+
+          const data = await response.json();
+
+          if (data.error) {
+            updateStatus(`Error: ${data.error}`, "red");
+            loadingScreen.style.display = "none";
+            return;
+          }
+
+          if (routeLine) {
+            map.removeLayer(routeLine);
+          }
+
+          if (data.fallback) {
+            routeLine = L.polyline([startLocation, targetLocation], {
+              color: "red",
+              weight: 5,
+              opacity: 0.7,
+              dashArray: "10, 10",
+            }).addTo(map);
+
+            updateStatus(
+              "Menggunakan rute garis lurus karena rute jalan tidak ditemukan",
+              "orange"
+            );
+
+            document.getElementById("routeDistance").innerText = "N/A";
+            document.getElementById("routeTime").innerText = "N/A";
+            document.getElementById("routeAlgorithm").innerText = "Garis Lurus";
+          } else {
+            routeLine = L.polyline(data.path, {
+              color: "#4285F4",
+              weight: 5,
+              opacity: 0.8,
+            }).addTo(map);
+
+            map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+
+            updateStatus(
+              `Rute ditemukan dengan algoritma ${data.algorithm || "Dijkstra"}`,
+              "green"
+            );
+
+            document.getElementById("routeDistance").innerText =
+              data.total_distance;
+            document.getElementById("routeTime").innerText =
+              data.estimated_time;
+            document.getElementById("routeAlgorithm").innerText =
+              data.algorithm || "Dijkstra";
+          }
+
+          routeInfo.style.display = "block";
+        } catch (error) {
+          updateStatus("Gagal menghubungi server", "red");
+          console.error(error);
+        } finally {
+          loadingScreen.style.display = "none";
+        }
+      }
+
+      async function geocodeAddress(address) {
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          address
+        )}&limit=1&countrycodes=id`;
+
+        try {
+          const response = await fetch(nominatimUrl);
+          const data = await response.json();
+
+          if (data && data.length > 0) {
+            return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+          } else {
+            throw new Error(`Lokasi "${address}" tidak ditemukan`);
+          }
+        } catch (error) {
+          throw new Error(
+            `Gagal mencari lokasi "${address}": ${error.message}`
+          );
+        }
+      }
+
+      async function checkGraphStatus() {
+        try {
+          const res = await fetch("/graph_status");
+          const data = await res.json();
+
+          const statusText = data.graph_loaded
+            ? `Graph jalan aktif (${data.node_count} node, ${data.edge_count} jalan)`
+            : "Graph jalan belum siap";
+
+          updateStatus(
+            `Status: ${statusText}. OSMNX versi ${
+              data.osmnx_version || "tidak diketahui"
+            }`
+          );
+
+          loadingScreen.style.display = "none";
+        } catch (error) {
+          updateStatus("Gagal mengecek status server", "red");
+          loadingScreen.style.display = "none";
+        }
+      }
+
+      searchPanel.classList.add("expanded");
+      window.onload = checkGraphStatus;
+
+      document
+        .getElementById("locationSearch")
+        .addEventListener("keypress", function (event) {
+          if (event.key === "Enter") {
+            searchLocation();
+          }
+        });
+
+      document
+        .getElementById("destinationInput")
+        .addEventListener("keypress", function (event) {
+          if (event.key === "Enter") {
+            searchDestination();
+          }
+        });
+    </script>
+  </body>
+</html>
